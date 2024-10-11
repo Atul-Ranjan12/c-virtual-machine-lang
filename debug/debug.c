@@ -33,6 +33,16 @@ int dissassembleInstruction(Chunk *chunk, int offset) {
     return simpleInstruction("OP_RETURN", offset);
   case OP_CONSTANT:
     return constantInstruction("OP_CONSTANT", chunk, offset);
+  case OP_NEGATE:
+    return simpleInstruction("OP_NAGATE", offset);
+  case OP_ADD:
+    return simpleInstruction("OP_ADD", offset);
+  case OP_SUBSTRACT:
+  return simpleInstruction("OP_SUBSTRACT", offset);
+  case OP_MULTIPLY:
+    return simpleInstruction("OP_MULTIPLY", offset);
+  case OP_DIVIDE:
+  return simpleInstruction("OP_DIVIDE", offset);
   default:
     return offset + 1;
   }
