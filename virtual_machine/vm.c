@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../compiler/compiler.h"
+
 // Global vm instance
 VM vm;
 
@@ -72,13 +74,9 @@ static InterpreterResult run() {
 }
 
 // Sets the vm up and then proceeds with the interpretation
-InterpreterResult interpret(Chunk *chunk) {
-  vm.chunk = chunk;
-  vm.ip = chunk->code;
-
-  resetStack();
-
-  return run();
+InterpreterResult interpret(char* source) {
+  compile(source);
+  return INTERPRET_OK;
 }
 
 // Push operation for the stack
