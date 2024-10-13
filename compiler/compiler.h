@@ -1,6 +1,8 @@
 #ifndef vm_compiler_h
 #define vm_compiler_h
 
-void compile(char* source);
+#include "../chunk/chunk.h"
+
+bool compile(char* source, Chunk* chunk);
 
 #endif

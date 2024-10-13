@@ -11,7 +11,10 @@ VM vm;
 
 static void resetStack() { vm.stackTop = vm.stack; }
 
-void initVM() { resetStack(); }
+void initVM() {
+  resetStack();
+  vm.stackTop = vm.stack;
+}
 
 void freeVM() {}
 
@@ -41,12 +44,14 @@ static InterpreterResult run() {
     uint8_t instruction = READ_BYTE();
     switch (instruction) {
     case OP_RETURN: {
-      printValue(pop());
-      printf("\n");
+      printf("%.0f", pop());
+      // printf("Got here at OP_RETURN");
+      // printf("\n");
       return INTERPRET_OK;
     }
     case OP_CONSTANT: {
       Value constant = READ_CONSTANT();
+      // printf("Got constant: %.0f \n", (double)constant);
       push(constant);
       break;
     }
@@ -74,9 +79,21 @@ static InterpreterResult run() {
 }
 
 // Sets the vm up and then proceeds with the interpretation
-InterpreterResult interpret(char* source) {
-  compile(source);
-  return INTERPRET_OK;
+InterpreterResult interpret(char *source) {
+  Chunk chunk;
+  initChunk(&chunk);
+
+  if (!compile(source, &chunk)) {
+    freeChunk(&chunk);
+    return INTERPRET_COMPILE_ERROR;
+  }
+
+  vm.chunk = &chunk;
+  vm.ip = vm.chunk->code;
+
+  InterpreterResult result = run();
+  freeChunk(&chunk);
+  return result;
 }
 
 // Push operation for the stack
@@ -96,5 +113,6 @@ Value pop() {
     exit(1);
   }
   vm.stackTop--;
-  return *vm.stackTop;
+  Value value = *vm.stackTop;
+  return value;
 }

@@ -49,6 +49,7 @@ int dissassembleInstruction(Chunk *chunk, int offset) {
 }
 
 void dissassembleChunk(Chunk *chunk, char *name) {
+  printf("Reaching here in dissemble chunk");
   printf("== %s == \n", name);
 
   for (int offset = 0; offset < chunk->count;) {
