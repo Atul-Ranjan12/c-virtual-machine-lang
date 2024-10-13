@@ -226,6 +226,14 @@ Token scanToken() {
 
   char c = advance();
 
+  // Check if c is a digit
+  if (isDigit(c))
+    return number();
+
+  // Check if it is an identifier (could also be a keyword)
+  if (isAlpha(c))
+    return identifier();
+
   switch (c) {
   case '(':
     return makeToken(TOKEN_LEFT_PAREN);

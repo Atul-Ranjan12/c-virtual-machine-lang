@@ -75,7 +75,7 @@ static char *readFile(const char *path) {
 static void runFile(const char* path) {
     char* source = readFile(path);
     // Make functionality to run the file
-    // InterpreterResult res = interpret(source);
+    InterpreterResult res = interpret(source);
 }
 
 // Main function
