@@ -1,15 +1,17 @@
-#include "vm.h"
-#include "../debug/debug.h"
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../compiler/compiler.h"
+#include "../debug/debug.h"
+#include "../memory/memory.h"
+#include "../object/object.h"
+#include "vm.h"
 
 bool valueEquals(Value a, Value b);
 
-// Global vm instance
 VM vm;
 
 static void resetStack() { vm.stackTop = vm.stack; }
@@ -17,6 +19,29 @@ static void resetStack() { vm.stackTop = vm.stack; }
 void initVM() {
   resetStack();
   vm.stackTop = vm.stack;
+  vm.objects = NULL;
+}
+
+static void freeObject(Obj *object) {
+  switch (object->type) {
+  case OBJ_STRING: {
+    ObjString *string = (ObjString *)object;
+    FREE_ARRAY(char, string->chars, string->length + 1);
+    FREE(ObjString, object);
+    break;
+  }
+  }
+}
+
+// freeObjects frees the objects from memory
+static void freeObjects() {
+  Obj *object = vm.objects;
+
+  while (object != NULL) {
+    Obj *next = object->next;
+    freeObject(object);
+    object = next;
+  }
 }
 
 void freeVM() {}
@@ -61,9 +86,33 @@ bool valueEquals(Value a, Value b) {
     return (AS_NUMBER(a) == AS_NUMBER(b));
   case VAL_BOOL:
     return (AS_BOOL(a) == AS_BOOL(b));
+  case VAL_OBJ: {
+    printf("Reached here\n");
+    ObjString *aString = AS_STRING(a);
+    ObjString *bString = AS_STRING(b);
+
+    return aString->length == bString->length &&
+           memcmp(aString->chars, bString->chars, aString->length) == 0;
+  }
   default:
     return false;
   }
+}
+
+static void concatnate() {
+  ObjString *b = AS_STRING(pop());
+  ObjString *a = AS_STRING(pop());
+
+  // Allocate memory
+  int length = a->length + b->length;
+  char *chars = ALLOCATE(char, length + 1);
+  memcpy(chars, a->chars, a->length);
+  memcpy(chars + a->length, b->chars, b->length);
+
+  chars[length] = '\0';
+
+  ObjString *result = takeString(chars, length);
+  push(OBJ_VAL(result));
 }
 
 // Run function actually handles the interpretation
@@ -115,9 +164,18 @@ static InterpreterResult run() {
       push(NUMBER_VAL(-AS_NUMBER(value)));
       break;
     }
-    case OP_ADD:
-      BINARY_OP(NUMBER_VAL, +);
+    case OP_ADD: {
+      if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+        concatnate();
+      } else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
+        BINARY_OP(NUMBER_VAL, +);
+      } else {
+        runtimeError("Operands must be numbers or two strings");
+        return INTERPRET_RUNTIME_ERROR;
+      }
       break;
+    }
+
     case OP_SUBSTRACT:
       BINARY_OP(NUMBER_VAL, -);
       break;

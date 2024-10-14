@@ -1,5 +1,6 @@
 #include "value.h"
 #include "../memory/memory.h"
+#include "../object/object.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -36,5 +37,10 @@ void printValue(Value value) {
   case (VAL_NUMBER):
     printf("%g\n", AS_NUMBER(value));
     break;
+  case (VAL_OBJ):
+    printObject(value);
+    break;
+  default: // Unreachable
+    return;
   }
 }

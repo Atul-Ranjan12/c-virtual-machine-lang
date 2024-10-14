@@ -4,6 +4,8 @@
 #include "../commons/common.h"
 #include <stddef.h>
 
+#define FREE(type, pointer) reallocate(pointer, sizeof(type), 0)
+
 // Macro to grow the capacity of an array
 #define GROW_CAPACITY(capacity) \
     ((capacity) < 8 ? 8 : (capacity) * 2)
@@ -19,6 +21,9 @@
 #define FREE_ARRAY(type, pointer, oldCount) \
     reallocate(pointer, sizeof(type) * (oldCount), 0)
 
+// Allocate memory to the heap
+#define ALLOCATE(type, count) \
+    (type*)reallocate(NULL, 0, sizeof(type) * (count))
 
 // The reallocate function
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
