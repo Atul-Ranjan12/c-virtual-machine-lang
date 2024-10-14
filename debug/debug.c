@@ -38,18 +38,31 @@ int dissassembleInstruction(Chunk *chunk, int offset) {
   case OP_ADD:
     return simpleInstruction("OP_ADD", offset);
   case OP_SUBSTRACT:
-  return simpleInstruction("OP_SUBSTRACT", offset);
+    return simpleInstruction("OP_SUBSTRACT", offset);
   case OP_MULTIPLY:
     return simpleInstruction("OP_MULTIPLY", offset);
   case OP_DIVIDE:
-  return simpleInstruction("OP_DIVIDE", offset);
+    return simpleInstruction("OP_DIVIDE", offset);
+  case OP_NIL:
+    return simpleInstruction("OP_NIL", offset);
+  case OP_TRUE:
+    return simpleInstruction("OP_TRUE", offset);
+  case OP_FALSE:
+    return simpleInstruction("OP_FALSE", offset);
+  case OP_NOT:
+    return simpleInstruction("OP_NOT", offset);
+  case OP_EQUAL:
+    return simpleInstruction("OP_EQUAL", offset);
+  case OP_GREATOR:
+    return simpleInstruction("OP_GREATOR", offset);
+  case OP_LESS:
+    return simpleInstruction("OP_LESS", offset);
   default:
     return offset + 1;
   }
 }
 
 void dissassembleChunk(Chunk *chunk, char *name) {
-  printf("Reaching here in dissemble chunk");
   printf("== %s == \n", name);
 
   for (int offset = 0; offset < chunk->count;) {
