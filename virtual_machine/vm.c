@@ -20,6 +20,7 @@ void initVM() {
   resetStack();
   vm.stackTop = vm.stack;
   vm.objects = NULL;
+  initTable(&vm.strings);
 }
 
 static void freeObject(Obj *object) {
@@ -44,7 +45,10 @@ static void freeObjects() {
   }
 }
 
-void freeVM() {}
+void freeVM() {
+  freeTable(&vm.strings);
+  freeObjects();
+}
 
 // runtimeError handles a runtime error in the script
 static void runtimeError(const char *format, ...) {
@@ -86,14 +90,8 @@ bool valueEquals(Value a, Value b) {
     return (AS_NUMBER(a) == AS_NUMBER(b));
   case VAL_BOOL:
     return (AS_BOOL(a) == AS_BOOL(b));
-  case VAL_OBJ: {
-    printf("Reached here\n");
-    ObjString *aString = AS_STRING(a);
-    ObjString *bString = AS_STRING(b);
-
-    return aString->length == bString->length &&
-           memcmp(aString->chars, bString->chars, aString->length) == 0;
-  }
+  case VAL_OBJ:
+    return AS_OBJ(a) == AS_OBJ(b);
   default:
     return false;
   }

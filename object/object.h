@@ -3,6 +3,7 @@
 
 #include "../commons/common.h"
 #include "../value/value.h"
+#include <stdint.h>
 
 typedef enum ObjType { OBJ_STRING } ObjType;
 
@@ -15,6 +16,7 @@ typedef struct ObjString {
   Obj obj;
   int length;
   char *chars;
+  uint32_t hash;
 } ObjString;
 
 // Because obj is of type Obj :: it is safe to cast ObjString*

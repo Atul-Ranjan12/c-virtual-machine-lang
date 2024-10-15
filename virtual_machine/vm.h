@@ -1,6 +1,7 @@
 #ifndef vm_vm_h
 #define vm_vm_h
 #include "../chunk/chunk.h"
+#include "../table/table.h"
 #include "../value/value.h"
 #include <stdint.h>
 
@@ -16,6 +17,8 @@ typedef struct {
   // values
   Value stack[STACK_MAX];
   Value *stackTop;
+
+  Table strings;
 
   Obj *objects;
 } VM;

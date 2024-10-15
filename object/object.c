@@ -1,11 +1,23 @@
 #include "object.h"
+#include "../memory/memory.h"
+#include "../virtual_machine/vm.h"
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../memory/memory.h"
-#include "../virtual_machine/vm.h"
 
+// Write a hash function to store a hash
+// hashString uses the FNN-1a algorithm to hash
+// strings
+static uint32_t hashString(const char *key, int length) {
+  uint32_t hash = 2166136261u;
+  for (int i = 0; i < length; i++) {
+    hash ^= (uint8_t)key[i];
+    hash *= 16777619;
+  }
+  return hash;
+}
 
 static Obj *allocateObj(size_t size, ObjType type) {
   Obj *object = (Obj *)reallocate(NULL, 0, size);
@@ -18,22 +30,29 @@ static Obj *allocateObj(size_t size, ObjType type) {
 #define ALLOCATE_OBJ(type, objectType)                                         \
   (type *)allocateObj(sizeof(type), objectType)
 
-static ObjString *allocateString(char *chars, int length) {
+static ObjString *allocateString(char *chars, int length, uint32_t hash) {
   ObjString *objectString = ALLOCATE_OBJ(ObjString, OBJ_STRING);
   objectString->length = length;
   objectString->chars = chars;
+  objectString->hash = hash;
 
+  // Set the value of the string in the table
+  tableSet(&vm.strings, objectString, NIL_VAL);
   return objectString;
 }
 
 // copyString copies the recieved chars into an object
 ObjString *copyString(const char *chars, int length) {
+  uint32_t hash = hashString(chars, length);
+  ObjString *interned = tableFindString(&vm.strings, chars, length, hash);
+  if (interned != NULL)
+    return interned;
   // Allocate memory to the heap
   char *heapChars = ALLOCATE(char, length + 1);
   memcpy(heapChars, chars, length);
   heapChars[length] = '\0';
 
-  return allocateString(heapChars, length);
+  return allocateString(heapChars, length, hash);
 }
 
 // printObject handles the printing of an object
@@ -49,5 +68,11 @@ void printObject(Value value) {
 
 // takeString allocates a string and returns it
 ObjString *takeString(char *chars, int length) {
-  return allocateString(chars, length);
+  uint32_t hash = hashString(chars, length);
+  ObjString *interned = tableFindString(&vm.strings, chars, length, hash);
+  if (interned != NULL) {
+    FREE_ARRAY(char, chars, length + 1);
+    return interned;
+  }
+  return allocateString(chars, length, hash);
 }
