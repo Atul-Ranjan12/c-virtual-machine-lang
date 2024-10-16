@@ -280,6 +280,128 @@ static void string() {
       copyString(parser.previous.start + 1, parser.previous.length - 2)));
 }
 
+// check function sees if a token type is of the required type
+// without advancing the parser
+static bool check(TokenType type) { return parser.current.type == type; }
+
+// match function checks for the type and then advances
+// the pointer returns true
+static bool match(TokenType type) {
+  if (!check(type))
+    return false;
+
+  advance();
+  return true;
+}
+
+// -------------------- Variables --------------------
+
+// Functions for variables
+
+// -------------------- Declaration
+
+// To Declare variables, we add it to our list of constants
+// in our vm
+
+// identifierConstant adds the identifier to the chunks->constant
+// array as an Obj and then returns the index
+static uint8_t identifierConstant(Token *name) {
+  // copyString handles allocation of string to objectString type
+  // and returns the objectString which is then casted to OBJ_VAL t
+  // to the Obj type, which is then made a constant
+  return makeConstant(OBJ_VAL(copyString(name->start, name->length)));
+}
+
+// parseVariable parses the variable and displays the error
+// message :: returns the index of the variables position
+static uint8_t parseVariable(const char *errorMessage) {
+  consume(TOKEN_IDENTIFIER, errorMessage);
+  return identifierConstant(&parser.previous);
+}
+
+// In the byte code variables are defines as one
+// OP_DEFINE_GLOBAL command followed by the index
+// of the actual variable
+static void defineVariable(uint8_t variableIndex) {
+  emitBytes(OP_DEFINE_GLOBAL, variableIndex);
+}
+
+// varDeclaration function defines the variable
+static void varDeclaration() {
+  // Var has already been consumed at this point
+  uint8_t globalIndex = parseVariable("Expect variable name");
+
+  if (match(TOKEN_EQUAL))
+    expression();
+  else
+    emitByte(OP_NIL);
+
+  consume(TOKEN_SEMICOLON, "Expect ; after variable declaration");
+
+  // Define the variable
+  defineVariable(globalIndex);
+}
+
+// printStatement handles a print statement
+static void printStatement() {
+  // parse the expression
+  expression();
+  consume(TOKEN_SEMICOLON, "Expect ; after print statement");
+  emitByte(OP_PRINT);
+}
+
+static void expressionStatement() {
+  expression();
+  consume(TOKEN_SEMICOLON, "Expect ; after expression");
+  emitByte(OP_POP);
+}
+
+// statement parses different statements
+static void statement() {
+  if (match(TOKEN_PRINT))
+    printStatement();
+  else if (match(TOKEN_VAR))
+    varDeclaration();
+  else
+    expressionStatement();
+
+  // For now if not a print statement, it is an expression
+  // expression();
+  // consume(TOKEN_SEMICOLON, "Expect ; at the end of expression");
+}
+
+// For panic mode recovery
+static void synchronize() {
+  parser.panicMode = false;
+
+  while (parser.current.type != TOKEN_EOF) {
+    if (parser.previous.type == TOKEN_SEMICOLON)
+      return;
+    switch (parser.current.type) {
+    case TOKEN_CLASS:
+    case TOKEN_FUN:
+    case TOKEN_VAR:
+    case TOKEN_FOR:
+    case TOKEN_IF:
+    case TOKEN_WHILE:
+    case TOKEN_PRINT:
+    case TOKEN_RETURN:
+      return;
+
+    default:; // Do nothing.
+    }
+
+    advance();
+  }
+}
+
+// declaration parses decalrations
+static void declaration() {
+  statement();
+  if (parser.panicMode)
+    synchronize();
+}
+
 // Rules for operator precedence parsing
 ParseRule rules[] = {
     [TOKEN_LEFT_PAREN] = {grouping, NULL, PREC_NONE},
@@ -333,7 +455,9 @@ bool compile(char *source, Chunk *chunk) {
   compilingChunk = chunk;
 
   advance();
-  expression();
+  while (!match(TOKEN_EOF)) {
+    declaration();
+  }
 
   endCompiler();
   return !parser.hadError;

@@ -19,6 +19,7 @@ static uint32_t hashString(const char *key, int length) {
   return hash;
 }
 
+// Used to allocate an object to the memory
 static Obj *allocateObj(size_t size, ObjType type) {
   Obj *object = (Obj *)reallocate(NULL, 0, size);
   object->type = type;
@@ -27,9 +28,12 @@ static Obj *allocateObj(size_t size, ObjType type) {
   return object;
 }
 
+// Used to allocate an object type to the memory
 #define ALLOCATE_OBJ(type, objectType)                                         \
   (type *)allocateObj(sizeof(type), objectType)
 
+// Gets the allocated space as chars and allocates
+// it as an object string
 static ObjString *allocateString(char *chars, int length, uint32_t hash) {
   ObjString *objectString = ALLOCATE_OBJ(ObjString, OBJ_STRING);
   objectString->length = length;
@@ -43,15 +47,21 @@ static ObjString *allocateString(char *chars, int length, uint32_t hash) {
 
 // copyString copies the recieved chars into an object
 ObjString *copyString(const char *chars, int length) {
+  // Hash the string into its hash
   uint32_t hash = hashString(chars, length);
+  // Check if we are already storing the string
+  // in our strings table, if yes, we just return
+  // the intered string
   ObjString *interned = tableFindString(&vm.strings, chars, length, hash);
   if (interned != NULL)
     return interned;
-  // Allocate memory to the heap
+  // Allocate memory to the heap and add final characteer
   char *heapChars = ALLOCATE(char, length + 1);
   memcpy(heapChars, chars, length);
   heapChars[length] = '\0';
 
+  // Return the string at the end after allocating
+  // it as on object
   return allocateString(heapChars, length, hash);
 }
 

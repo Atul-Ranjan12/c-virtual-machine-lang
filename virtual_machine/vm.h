@@ -17,8 +17,10 @@ typedef struct {
   // values
   Value stack[STACK_MAX];
   Value *stackTop;
-
+  // Keep track of all the string
   Table strings;
+  // Keep track of all the global variables
+  Table globals;
 
   Obj *objects;
 } VM;

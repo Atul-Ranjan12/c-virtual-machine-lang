@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #include "../memory/memory.h"
 #include "../object/object.h"
 #include "table.h"
@@ -56,17 +55,27 @@ static Entry *findEntry(Entry *entries, int capacity, ObjString *key) {
 static void adjustCapacity(Table *table, int capacity) {
   Entry *entries = ALLOCATE(Entry, capacity);
 
+  printf("Reached here\n");
+
   for (int i = 0; i < capacity; i++) {
     entries[i].key = NULL;
     entries[i].value = NIL_VAL;
   }
 
   table->count = 0;
-  for (int i = 0; i < capacity; i++) {
+  for (int i = 0; i < table->capacity; i++) {
     Entry *entry = &table->entries[i];
 
-    if (entry->key == NULL)
+    if (entry == NULL) {
+      printf("Reaching here: NULL Pointer reference\n");
+    }
+
+    printf("Outside the if for %d\n", i);
+
+    if (entry->key == NULL) {
+      printf("%d\n", i);
       continue;
+    }
 
     Entry *dest = findEntry(entries, capacity, entry->key);
     dest->key = entry->key;
@@ -82,9 +91,9 @@ static void adjustCapacity(Table *table, int capacity) {
 // tableSet sets a value on a table
 bool tableSet(Table *table, ObjString *key, Value value) {
   if (table->count + 1 > table->capacity * TABLE_MAX_LOAD) {
-    table->capacity = GROW_CAPACITY(table->capacity);
+    int capacity = GROW_CAPACITY(table->capacity);
     // Adjust capacity here
-    adjustCapacity(table, table->capacity);
+    adjustCapacity(table, capacity);
   }
 
   Entry *entry = findEntry(table->entries, table->capacity, key);
@@ -142,7 +151,6 @@ bool tableDelete(Table *tb, ObjString *key) {
 
   return true;
 }
-
 
 ObjString *tableFindString(Table *table, const char *chars, int length,
                            uint32_t hash) {

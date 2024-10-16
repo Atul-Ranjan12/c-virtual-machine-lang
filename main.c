@@ -72,17 +72,16 @@ static char *readFile(const char *path) {
   return buffer;
 }
 
-static void runFile(const char* path) {
-    char* source = readFile(path);
-    // Make functionality to run the file
-    InterpreterResult res = interpret(source);
+static void runFile(const char *path) {
+  char *source = readFile(path);
+  // Make functionality to run the file
+  InterpreterResult res = interpret(source);
 }
 
 // Main function
 int main(int argc, const char *argv[]) {
   initVM();
-
-  const char* filePath = "./test.lang";
+  const char *filePath = "./test.lang";
   runFile(filePath);
 
   return 0;
