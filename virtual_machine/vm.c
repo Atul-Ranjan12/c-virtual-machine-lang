@@ -215,13 +215,36 @@ static InterpreterResult run() {
       break;
     case OP_PRINT:
       printValue(pop());
-      printf("\n");
       break;
     case OP_DEFINE_GLOBAL: {
       ObjString *variableName = READ_STRING();
       // Add the variableName to the table
       tableSet(&vm.globals, variableName, peek(0));
       pop();
+      break;
+    }
+    case OP_GET_GLOBAL: {
+      ObjString *name = READ_STRING();
+      Value value;
+
+      if (!tableGet(&vm.globals, name, &value)) {
+        runtimeError("Undefined variable %s \n", name->chars);
+        return INTERPRET_RUNTIME_ERROR;
+      }
+
+      push(value);
+      break;
+    }
+    case OP_SET_GLOBAL: {
+      ObjString *name = READ_STRING();
+      // tableSet returns true if it is a new
+      // value that is being set, else it
+      // returns false, hence this if branch
+      if (tableSet(&vm.globals, name, peek(0))) {
+        tableDelete(&vm.globals, name);
+        runtimeError("Undefined variable '%s'", name->chars);
+        return INTERPRET_RUNTIME_ERROR;
+      }
       break;
     }
     }

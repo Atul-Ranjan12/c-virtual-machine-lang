@@ -36,7 +36,7 @@ typedef enum {
 } Precedence;
 
 // type for the parsing function
-typedef void (*ParseFn)();
+typedef void (*ParseFn)(bool canAssign);
 
 // parse rule structure
 typedef struct ParseRule {
@@ -50,8 +50,8 @@ Parser parser;
 Chunk *compilingChunk;
 
 // function declarations
-static void binary();
-static void unary();
+static void binary(bool canAssign);
+static void unary(bool canAssign);
 static ParseRule *getRule(TokenType type);
 static void expression();
 static void parsePrecedence(Precedence precedence);
@@ -150,13 +150,27 @@ static uint8_t makeConstant(Value value) {
   return (uint8_t)constantIdx;
 }
 
+// check function sees if a token type is of the required type
+// without advancing the parser
+static bool check(TokenType type) { return parser.current.type == type; }
+
+// match function checks for the type and then advances
+// the pointer returns true
+static bool match(TokenType type) {
+  if (!check(type))
+    return false;
+
+  advance();
+  return true;
+}
+
 // emitConstant emits a constant bytecode
 static void emitConstant(Value value) {
   emitBytes(OP_CONSTANT, makeConstant(value));
 }
 
 // number adds a number to the vm
-static void number() {
+static void number(bool canAssign) {
   double value = strtod(parser.previous.start, NULL);
   emitConstant(NUMBER_VAL(value));
 }
@@ -171,14 +185,19 @@ static void parsePrecedence(Precedence precedence) {
     return;
   }
 
-  prefixRule();
+  bool canAssign = precedence <= PREC_ASSIGNMENT;
+  prefixRule(canAssign);
 
   while (precedence <= getRule(parser.current.type)->precedence) {
     advance();
     ParseFn infixRule = getRule(parser.previous.type)->infix;
     // printf("Calling infix rule for token: %.*s\n", parser.previous.length,
     //        parser.previous.start);
-    infixRule();
+    infixRule(canAssign);
+  }
+
+  if (canAssign && match(TOKEN_EQUAL)) {
+    error("Invalid assignment target.");
   }
 }
 
@@ -187,13 +206,13 @@ static void parsePrecedence(Precedence precedence) {
 static void expression() { parsePrecedence(PREC_ASSIGNMENT); }
 // grouping parses a grouping expression
 // asume ( has been consumed
-static void grouping() {
+static void grouping(bool canAssign) {
   expression();
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression .");
 }
 
 // Parses unary expressions
-static void unary() {
+static void unary(bool canAssign) {
   TokenType operatorType = parser.previous.type;
 
   // // Compile the operand
@@ -214,7 +233,7 @@ static void unary() {
 }
 
 // binary parses binary expressions
-static void binary() {
+static void binary(bool canAssign) {
   TokenType operatorType = parser.previous.type;
   ParseRule *rule = getRule(operatorType);
 
@@ -258,7 +277,7 @@ static void binary() {
 }
 
 // literal handles parsing of literal expressions
-static void literal() {
+static void literal(bool canAssign) {
   switch (parser.previous.type) {
   case TOKEN_TRUE:
     emitByte(OP_TRUE);
@@ -275,23 +294,9 @@ static void literal() {
 }
 
 // string handles parsing of string expressions
-static void string() {
+static void string(bool canAssign) {
   emitConstant(OBJ_VAL(
       copyString(parser.previous.start + 1, parser.previous.length - 2)));
-}
-
-// check function sees if a token type is of the required type
-// without advancing the parser
-static bool check(TokenType type) { return parser.current.type == type; }
-
-// match function checks for the type and then advances
-// the pointer returns true
-static bool match(TokenType type) {
-  if (!check(type))
-    return false;
-
-  advance();
-  return true;
 }
 
 // -------------------- Variables --------------------
@@ -340,6 +345,24 @@ static void varDeclaration() {
 
   // Define the variable
   defineVariable(globalIndex);
+}
+
+// -------------------- Reading Variables
+
+static void namedVariable(Token name, bool canAssign) {
+  uint8_t idx = identifierConstant(&name);
+
+  if (canAssign && match(TOKEN_EQUAL)) {
+    // Next token is an equal
+    expression();
+    emitBytes(OP_SET_GLOBAL, idx);
+  }
+
+  emitBytes(OP_GET_GLOBAL, idx);
+}
+
+static void variable(bool canAssign) {
+  namedVariable(parser.previous, canAssign);
 }
 
 // printStatement handles a print statement
@@ -423,7 +446,7 @@ ParseRule rules[] = {
     [TOKEN_GREATER_EQUAL] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LESS] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LESS_EQUAL] = {NULL, binary, PREC_COMPARISON},
-    [TOKEN_IDENTIFIER] = {NULL, NULL, PREC_NONE},
+    [TOKEN_IDENTIFIER] = {variable, NULL, PREC_NONE},
     [TOKEN_STRING] = {string, NULL, PREC_NONE},
     [TOKEN_NUMBER] = {number, NULL, PREC_NONE},
     [TOKEN_AND] = {NULL, NULL, PREC_NONE},

@@ -55,8 +55,6 @@ static Entry *findEntry(Entry *entries, int capacity, ObjString *key) {
 static void adjustCapacity(Table *table, int capacity) {
   Entry *entries = ALLOCATE(Entry, capacity);
 
-  printf("Reached here\n");
-
   for (int i = 0; i < capacity; i++) {
     entries[i].key = NULL;
     entries[i].value = NIL_VAL;
@@ -89,6 +87,8 @@ static void adjustCapacity(Table *table, int capacity) {
 }
 
 // tableSet sets a value on a table
+// returns true if it is a new declaration, else returns
+// false
 bool tableSet(Table *table, ObjString *key, Value value) {
   if (table->count + 1 > table->capacity * TABLE_MAX_LOAD) {
     int capacity = GROW_CAPACITY(table->capacity);
