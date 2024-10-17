@@ -1,4 +1,8 @@
-var b = ( 1 + 2 + 3 + 4 ) / 2;
-print b;
-b = 10;
-print b;
+var a = "global";
+{
+    var b = "local";
+    print b;
+    print a;
+}
+
+print "from outside " + a;
